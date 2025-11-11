@@ -1,78 +1,177 @@
-# MERN Stack Integration Assignment
+# MERN Blog — Fullstack Integration
 
-This assignment focuses on building a full-stack MERN (MongoDB, Express.js, React.js, Node.js) application that demonstrates seamless integration between front-end and back-end components.
+This repository contains a full-stack MERN (MongoDB, Express, React, Node) blog application used for the Week 4 assignment.
 
-## Assignment Overview
+The project demonstrates a simple blogging platform with user authentication, post CRUD, image uploads, categories, searching and commenting.
 
-You will build a blog application with the following features:
-1. RESTful API with Express.js and MongoDB
-2. React front-end with component architecture
-3. Full CRUD functionality for blog posts
-4. User authentication and authorization
-5. Advanced features like image uploads and comments
+## Tech stack
 
-## Project Structure
+- Frontend: React (Vite)
+- Backend: Node.js + Express
+- Database: MongoDB (Mongoose)
+- Auth: JWT-based authentication
+- File uploads: multer (server-side)
+
+## Project structure (top-level)
 
 ```
-mern-blog/
-├── client/                 # React front-end
-│   ├── public/             # Static files
-│   ├── src/                # React source code
-│   │   ├── components/     # Reusable components
-│   │   ├── pages/          # Page components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API services
-│   │   ├── context/        # React context providers
-│   │   └── App.jsx         # Main application component
-│   └── package.json        # Client dependencies
-├── server/                 # Express.js back-end
-│   ├── config/             # Configuration files
-│   ├── controllers/        # Route controllers
-│   ├── models/             # Mongoose models
-│   ├── routes/             # API routes
-│   ├── middleware/         # Custom middleware
-│   ├── utils/              # Utility functions
-│   ├── server.js           # Main server file
-│   └── package.json        # Server dependencies
-└── README.md               # Project documentation
+client/       # React front-end (Vite)
+server/       # Express back-end
+README.md     
 ```
 
-## Getting Started
+## Quick start — setup and run
 
-1. Accept the GitHub Classroom assignment invitation
-2. Clone your personal repository that was created by GitHub Classroom
-3. Follow the setup instructions in the `Week4-Assignment.md` file
-4. Complete the tasks outlined in the assignment
-
-## Files Included
-
-- `Week4-Assignment.md`: Detailed assignment instructions
-- Starter code for both client and server:
-  - Basic project structure
-  - Configuration files
-  - Sample models and components
-
-## Requirements
-
-- Node.js (v18 or higher)
-- MongoDB (local installation or Atlas account)
+Prerequisites
+- Node.js (v16+ recommended)
 - npm or yarn
-- Git
+- MongoDB (local or Atlas)
 
-## Submission
+1) Clone
 
-Your work will be automatically submitted when you push to your GitHub Classroom repository. Make sure to:
+    git clone <your-repo-url>
+    cd mern-stack-integration-wangarikama
 
-1. Complete both the client and server portions of the application
-2. Implement all required API endpoints
-3. Create the necessary React components and hooks
-4. Document your API and setup process in the README.md
-5. Include screenshots of your working application
+2) Environment variables
 
-## Resources
+Create a `.env` file in the `server/` folder with at least:
 
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [Express.js Documentation](https://expressjs.com/)
-- [React Documentation](https://react.dev/)
-- [Node.js Documentation](https://nodejs.org/en/docs/)
-- [Mongoose Documentation](https://mongoosejs.com/docs/) 
+- MONGO_URI=your_mongodb_connection_string
+- JWT_SECRET=your_jwt_secret
+- JWT_EXPIRE=30d
+- PORT=5000 (optional)
+
+3) Install dependencies and run server
+
+    cd server
+    npm install
+    npm run dev
+
+The server listens on the port defined in `.env` (default 5000).
+
+4) Install and run the client
+
+    cd ../client
+    npm install
+    npm run dev
+
+Open the front-end in your browser (Vite will show the URL, typically http://localhost:5173).
+
+## API Documentation
+
+Base URL (development): http://localhost:5000/api
+
+Authentication
+
+- POST /api/auth/register
+  - Description: Register a new user
+  - Body (JSON): { "username": "jane", "email": "jane@example.com", "password": "secret" }
+  - Success response: 201 Created
+    {
+      "success": true,
+      "token": "<jwt>",
+      "user": { "_id": "...", "username": "jane", "email": "jane@example.com" }
+    }
+
+- POST /api/auth/login
+  - Description: Login existing user
+  - Body (JSON): { "email": "jane@example.com", "password": "secret" }
+  - Success response: 200 OK (same shape as register)
+
+Posts
+
+- GET /api/posts
+  - Description: List posts with pagination and optional category filter
+  - Query params: page (default 1), limit (default 10), category (category id)
+  - Success: 200 OK
+    {
+      "success": true,
+      "count": 2,
+      "pagination": { "total": 20, "page": 1, "limit": 10, "totalPages": 2 },
+      "data": [ /* array of posts */ ]
+    }
+
+- GET /api/posts/search?q=term
+  - Description: Search posts by title or content (case-insensitive)
+  - Query params: q (required)
+
+- GET /api/posts/:id
+  - Description: Get a single post by id or slug
+
+- POST /api/posts
+  - Description: Create a new post (protected)
+  - Headers: Authorization: Bearer <token>
+  - Content-Type: multipart/form-data
+  - Body fields (multipart): title, content, category, excerpt (optional), featuredImage (file)
+  - Success: 201 Created -> created post JSON
+
+- PUT /api/posts/:id
+  - Description: Update a post (protected)
+  - Content-Type: multipart/form-data (optional file)
+
+- DELETE /api/posts/:id
+  - Description: Delete a post (protected)
+
+Comments
+
+- POST /api/posts/:id/comments
+  - Description: Add a comment to a post (protected)
+  - Headers: Authorization: Bearer <token>
+  - Body (JSON): { "content": "Nice post!" }
+  - Success: 201 Created -> returns new comment object
+
+Categories
+
+- GET /api/categories
+  - Description: List all categories
+
+- POST /api/categories
+  - Description: Create a category
+  - Body (JSON): { "name": "Tech" }
+
+Error handling
+
+The API uses standard HTTP status codes. On errors the server forwards an Error object; typical shape is an error message and status code.
+
+## Features implemented
+
+- User registration and login (JWT)
+- Create, read, update, delete posts
+- Image uploads for posts (multipart/form-data)
+- Post categories and category listing
+- Search posts by title/content
+- Comments on posts (authenticated)
+- Pagination support for posts listing
+
+## Screenshots
+
+Below are two example screens from the application (Register and Login). To show them in this README, save the corresponding images to the `client/public/` folder with the exact filenames below.
+
+Register page
+
+![Register page](client/public/register.png)
+
+Login page
+
+![Login page](client/public/login.png)
+
+To add these screenshots locally:
+
+1. Save the provided register screenshot as `client/public/register.png`.
+2. Save the provided login screenshot as `client/public/login.png`.
+3. Commit and push — GitHub will render the images in this README automatically.
+
+If you'd like, I can add the two files into the repository for you if you upload the images here or tell me where they're stored; otherwise follow the steps above.
+
+## Development notes & next steps
+
+- Add role-based authorization for editing/deleting posts
+- Improve image storage (S3 or dedicated storage) and remove old images on update/delete
+- Add integration tests for API endpoints
+
+## License
+
+This project is provided for educational purposes.
+
+---
+If you want, I can also replace the placeholder SVG with a screenshot you provide, or guide you how to take and add one. Which would you prefer?

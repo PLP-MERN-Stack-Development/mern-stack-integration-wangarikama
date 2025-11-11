@@ -1,0 +1,30 @@
+.navbar {
+  background-color: #fff;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.navLeft { display: flex; align-items: center; gap: 1rem; }
+.navTitle { font-size: 1.25rem; font-weight: bold; color: #2563eb; }
+.navLink { color: #374151; }
+.navSearch { min-width: 250px; }
+.navRight { display: flex; align-items: center; gap: 1rem; }
+.button {
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+}
+.logoutButton { color-scheme: button; background-color: #ef4444; color: white; }
+.registerButton { color-scheme: button; background-color: #2563eb; color: white; }
+.mainContainer {
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
