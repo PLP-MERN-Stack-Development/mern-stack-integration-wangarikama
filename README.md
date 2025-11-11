@@ -173,5 +173,3 @@ If you'd like, I can add the two files into the repository for you if you upload
 
 This project is provided for educational purposes.
 
----
-If you want, I can also replace the placeholder SVG with a screenshot you provide, or guide you how to take and add one. Which would you prefer?
