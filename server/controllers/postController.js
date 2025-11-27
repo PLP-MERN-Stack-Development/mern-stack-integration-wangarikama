@@ -1,6 +1,17 @@
 const Post = require('../models/Post');
 const mongoose = require('mongoose');
 const path = require('path');
+
+const generateSlug = (text) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')        // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')    // Remove all non-word chars
+    .replace(/\-\-+/g, '-');     // Replace multiple - with single -
+};
+
 // @desc    Get all posts with pagination and optional category filter
 // @route   GET /api/posts
 // @access  Public
@@ -16,11 +27,11 @@ exports.getAllPosts = async (req, res, next) => {
     }
 
     const posts = await Post.find(query)
-      .populate('author', 'username') // Populate author's username
-      .populate('category', 'name')   // Populate category name
+      .populate('author', 'username')
+      .populate('category', 'name')
       .skip((page - 1) * limit)
       .limit(limit)
-      .sort({ createdAt: -1 }); // Sort by newest first
+      .sort({ createdAt: -1 });
 
     const total = await Post.countDocuments(query);
 
@@ -47,8 +58,6 @@ exports.getPostById = async (req, res, next) => {
   try {
     const idOrSlug = req.params.id;
 
-    // Check if the param is a valid Mongoose ObjectId.
-    // If yes, search by ID. If not, search by slug.
     const query = mongoose.Types.ObjectId.isValid(idOrSlug)
       ? { _id: idOrSlug }
       : { slug: idOrSlug };
@@ -56,16 +65,13 @@ exports.getPostById = async (req, res, next) => {
     const post = await Post.findOne(query)
       .populate('author', 'username')
       .populate('category', 'name')
-      .populate('comments.user', 'username'); // Populate username for comments
+      .populate('comments.user', 'username');
 
     if (!post) {
       const error = new Error('Post not found');
       error.statusCode = 404;
       return next(error);
     }
-
-    // Optional: Increment view count
-    // await post.incrementViewCount();
 
     res.status(200).json({
       success: true,
@@ -78,7 +84,7 @@ exports.getPostById = async (req, res, next) => {
 
 // @desc    Create a new post
 // @route   POST /api/posts
-// @access  Private (for now, public)
+// @access  Private
 exports.createPost = async (req, res, next) => {
   try {
     const { title, content, category, excerpt } = req.body;
@@ -86,15 +92,21 @@ exports.createPost = async (req, res, next) => {
 
     // Check for uploaded file
     if (req.file) {
-      //Store the path relative to the server
       req.body.featuredImage = `/${req.file.path}`; 
     }
 
-    if (!title || !content || !category) {const error = new Error('Post not found');
-      error.statusCode = 404;
+    // Validation
+    if (!title || !content || !category) {
+      const error = new Error('Please provide title, content and category'); // Fixed error message
+      error.statusCode = 400; // Fixed status code (was 404)
       return next(error);
     }
     
+    // 2. INSERT SLUG GENERATION HERE <--- NEW
+    if (!req.body.slug && title) {
+      req.body.slug = generateSlug(title);
+    }
+
     const post = await Post.create(req.body);
 
     res.status(201).json({
@@ -102,24 +114,35 @@ exports.createPost = async (req, res, next) => {
       data: post,
     });
   } catch (err) {
+    // If slug is duplicate, handle error gracefully
+    if (err.code === 11000 && err.keyPattern.slug) {
+       const error = new Error('A post with this title already exists');
+       error.statusCode = 400;
+       return next(error);
+    }
     next(err);
   }
 };
 
 // @desc    Update a post
 // @route   PUT /api/posts/:id
-// @access  Private (for now, public)
+// @access  Private
 exports.updatePost = async (req, res, next) => {
   try {
     let post = await Post.findById(req.params.id);
-    if (!post) {const error = new Error('Post not found');
+    if (!post) {
+      const error = new Error('Post not found');
       error.statusCode = 404;
       return next(error);
     }
-   // Check for new file
+
     if (req.file) {
       req.body.featuredImage = `/${req.file.path}`;
-      // TODO: Delete old image from storage
+    }
+
+    // 3. Update slug if title changes (Optional but recommended) <--- NEW
+    if (req.body.title && !req.body.slug) {
+        req.body.slug = generateSlug(req.body.title);
     }
 
     post = await Post.findByIdAndUpdate(req.params.id, req.body, {
@@ -138,7 +161,7 @@ exports.updatePost = async (req, res, next) => {
 
 // @desc    Delete a post
 // @route   DELETE /api/posts/:id
-// @access  Private (for now, public)
+// @access  Private
 exports.deletePost = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -149,9 +172,7 @@ exports.deletePost = async (req, res, next) => {
       return next(error);
     }
 
-    // Add authorization check later
-
-    await post.deleteOne(); // or post.remove() for older mongoose
+    await post.deleteOne();
 
     res.status(200).json({
       success: true,
@@ -164,7 +185,7 @@ exports.deletePost = async (req, res, next) => {
 
 // @desc    Add a comment
 // @route   POST /api/posts/:id/comments
-// @access  Private (Needs auth middleware)
+// @access  Private
 exports.addComment = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -175,7 +196,7 @@ exports.addComment = async (req, res, next) => {
       return next(error);
     }
 
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.id;
     const { content } = req.body;
 
     if (!content) {
@@ -184,18 +205,16 @@ exports.addComment = async (req, res, next) => {
         return next(error);
     }
     
-    // Use the custom method from your Post.js model
     const newComment = { content: content, user: userId };
     post.comments.push(newComment);
     await post.save();
 
-    // Populate user info before sending back
     const populatedPost = await post.populate('comments.user', 'username');
     const addedComment = populatedPost.comments[populatedPost.comments.length - 1];
 
     res.status(201).json({
       success: true,
-      data: addedComment, // Send back only the new, populated comment
+      data: addedComment,
     });
   } catch (err) {
     next(err);
@@ -216,7 +235,7 @@ exports.searchPosts = async (req, res, next) => {
 
     const posts = await Post.find({
       $or: [
-        { title: { $regex: query, $options: 'i' } }, // 'i' for case-insensitive
+        { title: { $regex: query, $options: 'i' } },
         { content: { $regex: query, $options: 'i' } },
       ],
     })
