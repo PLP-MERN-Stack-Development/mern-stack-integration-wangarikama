@@ -1,0 +1,36 @@
+name: MERN CI Pipeline
+
+# Trigger this workflow whenever code is pushed to the main branch
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    # 1. Check out your code from the repository
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # 2. Install Node.js environment
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    # 3. Install Backend Dependencies (Verifies package.json is valid)
+    - name: Install Backend Dependencies
+      run: npm install
+
+    # 4. Verify Build (Optional - checks if scripts are valid)
+    - name: Verify Start Script
+      run: npm run build --if-present
